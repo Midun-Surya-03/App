@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="FitLog is a fast, offline-first workout tracker that helps everyday gym-goers log sessions, review progress, and stay consistent."
+    />
+    <title>FitLog | Workout Tracking for Everyday Gym-Goers</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="backdrop backdrop--aurora"></div>
+    <div class="backdrop backdrop--grid"></div>
+
+    <header class="shell topbar">
+      <div>
+        <p class="eyebrow">FitLog · Phase 1 launch shell</p>
+        <h1>Log workouts in under a minute and keep the habit alive.</h1>
+      </div>
+      <div class="topbar__actions">
+        <span class="pill pill--success">Offline-first</span>
+        <span class="pill">Web ready</span>
+        <span class="pill">Phase-gated roadmap</span>
+      </div>
+    </header>
+
+    <main class="shell app">
+      <section class="hero panel panel--hero">
+        <div class="hero__content">
+          <p class="eyebrow">Built from the merged PRD</p>
+          <h2>Fast logging first. Bigger fitness platform later.</h2>
+          <p class="hero__copy">
+            This experience is designed around the core habit loop: start a workout quickly,
+            capture sets with minimal friction, see progress at a glance, and keep the data model
+            ready for nutrition, cardio, recovery, and social phases when retention justifies it.
+          </p>
+          <div class="hero__cta">
+            <button class="button button--primary" id="startEmptyWorkout">Start Empty Workout</button>
+            <button class="button button--ghost" data-template-start="Push Day">Repeat Push Day</button>
+          </div>
+        </div>
+        <div class="hero__snapshot">
+          <div class="snapshot__card snapshot__card--accent">
+            <span>Activation target</span>
+            <strong>60% first workout in 24h</strong>
+          </div>
+          <div class="snapshot__card">
+            <span>Retention gate</span>
+            <strong>35% 4-week retention</strong>
+          </div>
+          <div class="snapshot__card">
+            <span>Launch scope</span>
+            <strong>Workout logging, history, templates, dashboard</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Key metrics">
+        <article class="stat-card">
+          <span>Weekly workouts</span>
+          <strong id="statWeeklyWorkouts">0</strong>
+          <small>7-day rolling activity</small>
+        </article>
+        <article class="stat-card">
+          <span>Total volume</span>
+          <strong id="statVolume">0 lbs</strong>
+          <small>All logged working sets</small>
+        </article>
+        <article class="stat-card">
+          <span>Current streak</span>
+          <strong id="statStreak">0 days</strong>
+          <small>Workout days in a row</small>
+        </article>
+        <article class="stat-card">
+          <span>Avg. session</span>
+          <strong id="statDuration">0 min</strong>
+          <small>Across completed workouts</small>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <div class="workspace__primary">
+          <section class="panel panel--logger" aria-labelledby="loggerTitle">
+            <div class="panel__heading">
+              <div>
+                <p class="eyebrow">Live logger</p>
+                <h3 id="loggerTitle">Your workout</h3>
+              </div>
+              <div class="panel__heading-actions">
+                <button class="button button--soft" id="repeatLastWorkout">Repeat Last Workout</button>
+                <button class="button button--danger" id="finishWorkout">Finish Workout</button>
+              </div>
+            </div>
+
+            <div class="logger__meta">
+              <div>
+                <span>Session</span>
+                <strong id="sessionTitle">No active workout</strong>
+              </div>
+              <div>
+                <span>Started</span>
+                <strong id="sessionStarted">-</strong>
+              </div>
+              <div>
+                <span>Duration</span>
+                <strong id="sessionDuration">0 min</strong>
+              </div>
+            </div>
+
+            <form class="log-form" id="logSetForm">
+              <label>
+                <span>Exercise</span>
+                <input id="exerciseInput" list="exerciseOptions" placeholder="Incline dumbbell press" required />
+              </label>
+              <label>
+                <span>Weight</span>
+                <input id="weightInput" type="number" min="0" step="2.5" placeholder="95" required />
+              </label>
+              <label>
+                <span>Reps</span>
+                <input id="repsInput" type="number" min="1" step="1" placeholder="10" required />
+              </label>
+              <label>
+                <span>RPE</span>
+                <input id="rpeInput" type="number" min="1" max="10" step="0.5" placeholder="8" />
+              </label>
+              <label class="log-form__notes">
+                <span>Notes</span>
+                <input id="notesInput" type="text" placeholder="Felt strong on the top set" />
+              </label>
+              <button class="button button--primary log-form__submit" type="submit">Log Set</button>
+            </form>
+
+            <datalist id="exerciseOptions"></datalist>
+
+            <div class="logger__content">
+              <div>
+                <div class="section-label">
+                  <span>Logged sets</span>
+                  <small id="sessionSetCount">0 sets</small>
+                </div>
+                <div id="activeWorkoutList" class="stack-list"></div>
+              </div>
+              <aside class="logger__aside">
+                <div class="mini-panel">
+                  <div class="section-label">
+                    <span>Templates</span>
+                    <small>One tap starts</small>
+                  </div>
+                  <div id="templateChips" class="chip-grid"></div>
+                </div>
+                <div class="mini-panel">
+                  <div class="section-label">
+                    <span>Recent PRs</span>
+                    <small>Highlights from history</small>
+                  </div>
+                  <div id="recentPrs" class="pr-list"></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="panel panel--tabs" aria-labelledby="workspaceTabsTitle">
+            <div class="panel__heading panel__heading--stacked">
+              <div>
+                <p class="eyebrow">Explore</p>
+                <h3 id="workspaceTabsTitle">Progress, library, and roadmap</h3>
+              </div>
+              <div class="tabs" role="tablist" aria-label="Workspace views">
+                <button class="tab is-active" data-view-button="today" role="tab" aria-selected="true">Today</button>
+                <button class="tab" data-view-button="progress" role="tab" aria-selected="false">Progress</button>
+                <button class="tab" data-view-button="library" role="tab" aria-selected="false">Library</button>
+                <button class="tab" data-view-button="roadmap" role="tab" aria-selected="false">Roadmap</button>
+              </div>
+            </div>
+
+            <div class="views">
+              <section class="view is-active" data-view="today" role="tabpanel">
+                <div class="two-col">
+                  <article class="subpanel">
+                    <div class="section-label">
+                      <span>Recent workouts</span>
+                      <small>Fast scan for gym-floor context</small>
+                    </div>
+                    <div id="recentWorkouts" class="feed"></div>
+                  </article>
+                  <article class="subpanel">
+                    <div class="section-label">
+                      <span>Today’s coaching cues</span>
+                      <small>Designed to keep logging simple</small>
+                    </div>
+                    <div class="cue-list">
+                      <div class="cue-card">
+                        <strong>Under 60 seconds per exercise</strong>
+                        <p>Autofill from the last session and keep every input big enough for sweaty hands.</p>
+                      </div>
+                      <div class="cue-card">
+                        <strong>Offline is the default</strong>
+                        <p>The logger is built to survive bad signal in gyms and sync when the device reconnects.</p>
+                      </div>
+                      <div class="cue-card">
+                        <strong>Phase-gated expansion</strong>
+                        <p>Nutrition, recovery, cardio, and social are ready conceptually, but stay locked until retention supports them.</p>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="view" data-view="progress" role="tabpanel" hidden>
+                <div class="two-col">
+                  <article class="subpanel">
+                    <div class="section-label">
+                      <span>Volume trend</span>
+                      <small>Last 8 workouts</small>
+                    </div>
+                    <div id="volumeChart" class="chart"></div>
+                  </article>
+                  <article class="subpanel">
+                    <div class="section-label">
+                      <span>Weekly consistency</span>
+                      <small>Last 28 days</small>
+                    </div>
+                    <div id="consistencyChart" class="chart chart--bars"></div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="view" data-view="library" role="tabpanel" hidden>
+                <div class="library-toolbar">
+                  <label class="search">
+                    <span>Search exercises</span>
+                    <input id="exerciseSearch" type="search" placeholder="Search by muscle group, equipment, or movement" />
+                  </label>
+                  <div class="library-kpis">
+                    <div>
+                      <span>Total exercises</span>
+                      <strong id="libraryCount">0</strong>
+                    </div>
+                    <div>
+                      <span>Filtered results</span>
+                      <strong id="libraryFilteredCount">0</strong>
+                    </div>
+                  </div>
+                </div>
+                <div id="exerciseLibrary" class="library-grid"></div>
+              </section>
+
+              <section class="view" data-view="roadmap" role="tabpanel" hidden>
+                <div id="roadmapCards" class="roadmap-grid"></div>
+              </section>
+            </div>
+          </section>
+        </div>
+
+        <aside class="workspace__rail">
+          <section class="panel">
+            <div class="section-label">
+              <span>Session snapshot</span>
+              <small>One-glance context</small>
+            </div>
+            <div id="sessionSnapshot" class="snapshot-stack"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-label">
+              <span>Retention gate</span>
+              <small>Why the roadmap is phased</small>
+            </div>
+            <div class="gate-card">
+              <strong>Phase 2 unlocks after 35% 4-week retention.</strong>
+              <p>
+                The app starts narrow on purpose so onboarding stays simple. Once the habit proves
+                durable, nutrition, recovery, wearables, and social can be layered in without
+                compromising the first-run experience.
+              </p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-label">
+              <span>Release target</span>
+              <small>Immediate outcome</small>
+            </div>
+            <ul class="checklist">
+              <li>Fast logging flow</li>
+              <li>Clear progress visibility</li>
+              <li>Template reuse</li>
+              <li>Offline-friendly data capture</li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

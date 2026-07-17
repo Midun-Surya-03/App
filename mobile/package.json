@@ -1,0 +1,29 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~57.0.6",
+    "expo-dev-client": "^57.0.6",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "start:dev": "expo start --dev-client",
+    "android": "expo start --android",
+    "android:dev": "expo start --dev-client --android",
+    "ios": "expo start --ios",
+    "ios:dev": "expo start --dev-client --ios",
+    "build:dev": "eas build --profile development",
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:dev:ios": "eas build --profile development --platform ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}
