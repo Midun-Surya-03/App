@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'fitlog-state-v1';
+const STORAGE_KEY = 'liftoff-state-v1';
 
 const exerciseLibrary = [
   { name: 'Barbell bench press', category: 'Chest', equipment: 'Barbell', movement: 'Push' },
@@ -75,6 +75,7 @@ const seedWorkouts = [
     title: 'Push Day',
     startedAt: '2026-07-15T18:30:00',
     completedAt: '2026-07-15T19:08:00',
+    unit: 'lbs',
     notes: 'Bench moved well after warmup.',
     exercises: [
       { name: 'Barbell bench press', sets: [{ weight: 185, reps: 8, rpe: 8 }, { weight: 185, reps: 7, rpe: 8.5 }] },
@@ -87,6 +88,7 @@ const seedWorkouts = [
     title: 'Pull Day',
     startedAt: '2026-07-13T18:20:00',
     completedAt: '2026-07-13T19:00:00',
+    unit: 'lbs',
     notes: 'Pulled with straps, good lat feel.',
     exercises: [
       { name: 'Lat pulldown', sets: [{ weight: 140, reps: 10, rpe: 7.5 }] },
@@ -99,6 +101,7 @@ const seedWorkouts = [
     title: 'Leg Day',
     startedAt: '2026-07-10T07:05:00',
     completedAt: '2026-07-10T07:52:00',
+    unit: 'lbs',
     notes: 'Front squat is coming back up.',
     exercises: [
       { name: 'Barbell back squat', sets: [{ weight: 235, reps: 5, rpe: 8.5 }] },
@@ -135,7 +138,22 @@ const elements = {
   repsInput: document.getElementById('repsInput'),
   rpeInput: document.getElementById('rpeInput'),
   notesInput: document.getElementById('notesInput'),
+
+  // Skills and Settings elements
+  muscleBalanceList: document.getElementById('muscleBalanceList'),
+  muscleSkillsGrid: document.getElementById('muscleSkillsGrid'),
+  settingsForm: document.getElementById('settingsForm'),
+  settingGoal: document.getElementById('settingGoal'),
+  settingLevel: document.getElementById('settingLevel'),
+  settingBodyweight: document.getElementById('settingBodyweight'),
+  settingGuestMode: document.getElementById('settingGuestMode'),
+  resetStorageBtn: document.getElementById('resetStorageBtn'),
 };
+
+const exerciseCategoryMap = {};
+exerciseLibrary.forEach((ex) => {
+  exerciseCategoryMap[ex.name.toLowerCase()] = ex.category;
+});
 
 const state = loadState();
 ensureSeedData(state);
@@ -151,16 +169,43 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return { workouts: [], currentWorkout: null };
+      return {
+        workouts: [],
+        currentWorkout: null,
+        settings: {
+          goal: 'General Consistency',
+          level: 'Beginner',
+          unit: 'lbs',
+          bodyweight: 150,
+          guestMode: false
+        }
+      };
     }
 
     const parsed = JSON.parse(raw);
     return {
       workouts: Array.isArray(parsed.workouts) ? parsed.workouts : [],
       currentWorkout: parsed.currentWorkout ?? null,
+      settings: parsed.settings ?? {
+        goal: 'General Consistency',
+        level: 'Beginner',
+        unit: 'lbs',
+        bodyweight: 150,
+        guestMode: false
+      },
     };
   } catch (error) {
-    return { workouts: [], currentWorkout: null };
+    return {
+      workouts: [],
+      currentWorkout: null,
+      settings: {
+        goal: 'General Consistency',
+        level: 'Beginner',
+        unit: 'lbs',
+        bodyweight: 150,
+        guestMode: false
+      }
+    };
   }
 }
 
@@ -173,6 +218,20 @@ function ensureSeedData(currentState) {
 
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function convertWeight(val, fromUnit, toUnit) {
+  if (!val) return 0;
+  if (fromUnit === toUnit) {
+    return val;
+  }
+  if (fromUnit === 'lbs' && toUnit === 'kg') {
+    return Math.round(val * 0.45359237 * 2) / 2; // round to nearest 0.5 kg
+  }
+  if (fromUnit === 'kg' && toUnit === 'lbs') {
+    return Math.round((val * 2.20462262) / 2.5) * 2.5; // round to nearest 2.5 lbs
+  }
+  return val;
 }
 
 function formatDateTime(iso) {
@@ -202,6 +261,7 @@ function startWorkout(templateName = 'Custom Workout') {
     id: crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`,
     title: template?.name ?? templateName,
     startedAt: new Date().toISOString(),
+    unit: state.settings.unit,
     exercises: template
       ? template.exercises.map((name) => ({ name, sets: [] }))
       : [],
@@ -223,6 +283,7 @@ function finishWorkout() {
     title: session.title,
     startedAt: session.startedAt,
     completedAt,
+    unit: session.unit || 'lbs',
     notes: session.notes ?? '',
     exercises: session.exercises,
   };
@@ -257,8 +318,12 @@ function getExerciseHistory(exerciseName) {
 }
 
 function getVolumeForWorkout(workout) {
+  const wUnit = workout.unit || 'lbs';
   return workout.exercises.reduce((workoutTotal, exercise) => {
-    const exerciseVolume = exercise.sets.reduce((setTotal, setEntry) => setTotal + setEntry.weight * setEntry.reps, 0);
+    const exerciseVolume = exercise.sets.reduce((setTotal, setEntry) => {
+      const weightInCurrentUnit = convertWeight(setEntry.weight, wUnit, state.settings.unit);
+      return setTotal + weightInCurrentUnit * setEntry.reps;
+    }, 0);
     return workoutTotal + exerciseVolume;
   }, 0);
 }
@@ -330,22 +395,38 @@ function getRecentPrs() {
   const seen = new Set();
 
   for (const workout of state.workouts) {
+    const wUnit = workout.unit || 'lbs';
     for (const exercise of workout.exercises) {
       for (const setEntry of exercise.sets) {
-        const key = `${exercise.name}:${setEntry.weight}:${setEntry.reps}`;
+        // Convert weight of setEntry to a base unit (e.g. lbs) for PR evaluation
+        const weightInLbs = convertWeight(setEntry.weight, wUnit, 'lbs');
+        const key = `${exercise.name}:${Math.round(weightInLbs)}:${setEntry.reps}`;
         if (seen.has(key)) {
           continue;
         }
 
-        const historicalSets = getExerciseHistory(exercise.name)
-          .flatMap((entry) => entry.exercise.sets)
-          .filter((entry) => entry.weight * entry.reps <= setEntry.weight * setEntry.reps);
+        const history = getExerciseHistory(exercise.name);
+        let isPR = true;
+        for (const histEntry of history) {
+          const histUnit = histEntry.workout.unit || 'lbs';
+          for (const histSet of histEntry.exercise.sets) {
+            // Skip the current set itself
+            if (histEntry.workout.id === workout.id) continue;
+            
+            const histWeightInLbs = convertWeight(histSet.weight, histUnit, 'lbs');
+            if (histWeightInLbs * histSet.reps >= weightInLbs * setEntry.reps) {
+              isPR = false;
+              break;
+            }
+          }
+          if (!isPR) break;
+        }
 
-        const heaviest = Math.max(...historicalSets.map((entry) => entry.weight * entry.reps), 0);
-        if (setEntry.weight * setEntry.reps >= heaviest) {
+        if (isPR) {
+          const displayWeight = convertWeight(setEntry.weight, wUnit, state.settings.unit);
           prs.push({
             exercise: exercise.name,
-            detail: `${setEntry.weight} x ${setEntry.reps} at ${formatDate(workout.completedAt)}`,
+            detail: `${displayWeight} ${state.settings.unit} x ${setEntry.reps} at ${formatDate(workout.completedAt)}`,
           });
           seen.add(key);
         }
@@ -673,6 +754,7 @@ function renderLibrary(filter = '') {
       const history = getExerciseHistory(exercise.name);
       const lastEntry = history[0];
       const lastSet = lastEntry?.exercise.sets[lastEntry.exercise.sets.length - 1];
+      const lastSetWeight = lastSet ? convertWeight(lastSet.weight, lastEntry.workout.unit || 'lbs', state.settings.unit) : 0;
 
       return `
         <article class="library-card">
@@ -685,12 +767,184 @@ function renderLibrary(filter = '') {
           </div>
           <div class="library-card__meta">
             <span class="meta-pill">${history.length ? `${history.length} sessions logged` : 'No history yet'}</span>
-            ${lastSet ? `<span class="meta-pill">Last ${lastSet.weight} x ${lastSet.reps}</span>` : ''}
+            ${lastSet ? `<span class="meta-pill">Last ${lastSetWeight} ${state.settings.unit} x ${lastSet.reps}</span>` : ''}
           </div>
         </article>
       `;
     })
     .join('');
+}
+
+function renderSkills() {
+  const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Posterior chain'];
+  
+  const weeklySets = {};
+  const lifetimeSets = {};
+  const prs = {}; 
+  
+  muscleGroups.forEach(g => {
+    weeklySets[g] = 0;
+    lifetimeSets[g] = 0;
+    prs[g] = null;
+  });
+
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+  state.workouts.forEach((workout) => {
+    const isWeekly = new Date(workout.completedAt).getTime() >= cutoff;
+    const wUnit = workout.unit || 'lbs';
+
+    workout.exercises.forEach((ex) => {
+      const category = exerciseCategoryMap[ex.name.toLowerCase()] || 'Accessory';
+      if (!weeklySets.hasOwnProperty(category)) {
+        return; 
+      }
+
+      const setList = ex.sets || [];
+      lifetimeSets[category] += setList.length;
+      if (isWeekly) {
+        weeklySets[category] += setList.length;
+      }
+
+      setList.forEach((set) => {
+        const weightInLbs = convertWeight(set.weight, wUnit, 'lbs');
+        const est1RM = weightInLbs * (1 + set.reps / 30);
+        
+        const currentPr = prs[category];
+        if (!currentPr) {
+          prs[category] = { est1RM, weight: set.weight, reps: set.reps, exercise: ex.name, unit: wUnit };
+        } else {
+          if (est1RM > currentPr.est1RM) {
+            prs[category] = { est1RM, weight: set.weight, reps: set.reps, exercise: ex.name, unit: wUnit };
+          }
+        }
+      });
+    });
+  });
+
+  const balanceHtml = muscleGroups.map(g => {
+    const count = weeklySets[g] || 0;
+    const target = 10;
+    const percent = Math.min(100, (count / target) * 100);
+    const progressColor = percent >= 100 ? 'var(--success, #25d39d)' : percent >= 50 ? 'var(--accent)' : 'var(--accent-warm)';
+    
+    return `
+      <div class="balance-item">
+        <div class="balance-item__info">
+          <strong>${g === 'Posterior chain' ? 'Posterior Chain' : g}</strong>
+          <span>${count} / ${target} sets</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width: ${percent}%; background: ${progressColor};"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  elements.muscleBalanceList.innerHTML = balanceHtml;
+
+  const skillsHtml = muscleGroups.map(g => {
+    const sets = lifetimeSets[g] || 0;
+    let level = 'Novice';
+    let levelClass = 'badge--novice';
+    if (sets >= 21) {
+      level = 'Proficient';
+      levelClass = 'badge--proficient';
+    } else if (sets >= 5) {
+      level = 'Competent';
+      levelClass = 'badge--competent';
+    }
+
+    const pr = prs[g];
+    let prText = 'No lifts logged';
+    if (pr) {
+      const displayWeight = convertWeight(pr.weight, pr.unit, state.settings.unit);
+      prText = `<strong>${pr.exercise}</strong><br>${displayWeight} ${state.settings.unit} x ${pr.reps}`;
+    }
+
+    return `
+      <div class="skill-card">
+        <div class="skill-card__header">
+          <h4>${g === 'Posterior chain' ? 'Posterior Chain' : g}</h4>
+          <span class="badge ${levelClass}">${level}</span>
+        </div>
+        <div class="skill-card__stats">
+          <div>
+            <span>Lifetime sets</span>
+            <strong>${sets}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>${sets >= 21 ? 'High volume' : sets >= 5 ? 'Steady progress' : 'Just started'}</strong>
+          </div>
+        </div>
+        <div class="skill-card__pr">
+          <span class="label">Best Lift (Est. PR)</span>
+          <p>${prText}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+  elements.muscleSkillsGrid.innerHTML = skillsHtml;
+}
+
+function renderSettings() {
+  if (!elements.settingsForm) return;
+
+  elements.settingGoal.value = state.settings.goal;
+  elements.settingLevel.value = state.settings.level;
+  elements.settingBodyweight.value = state.settings.bodyweight;
+  elements.settingGuestMode.checked = state.settings.guestMode;
+
+  const radios = document.getElementsByName('settingUnit');
+  radios.forEach((r) => {
+    r.checked = r.value === state.settings.unit;
+  });
+
+  document.querySelectorAll('.weight-unit-label').forEach((el) => {
+    el.textContent = state.settings.unit;
+  });
+
+  if (state.settings.unit === 'kg') {
+    elements.weightInput.placeholder = '40';
+    elements.weightInput.step = '0.5';
+  } else {
+    elements.weightInput.placeholder = '95';
+    elements.weightInput.step = '2.5';
+  }
+}
+
+function saveSettings(event) {
+  if (event) event.preventDefault();
+
+  const selectedUnit = document.querySelector('input[name="settingUnit"]:checked').value;
+  const oldUnit = state.settings.unit;
+
+  state.settings.goal = elements.settingGoal.value;
+  state.settings.level = elements.settingLevel.value;
+  state.settings.unit = selectedUnit;
+  state.settings.bodyweight = Number(elements.settingBodyweight.value);
+  state.settings.guestMode = elements.settingGuestMode.checked;
+
+  if (oldUnit !== selectedUnit) {
+    state.settings.bodyweight = convertWeight(state.settings.bodyweight, oldUnit, selectedUnit);
+    elements.settingBodyweight.value = String(state.settings.bodyweight);
+  }
+
+  persist();
+  render();
+}
+
+function resetStorage() {
+  if (confirm('Are you sure you want to reset all data? This will clear all logged workouts and restore default seeds.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    const newState = loadState();
+    ensureSeedData(newState);
+    state.workouts = newState.workouts;
+    state.currentWorkout = newState.currentWorkout;
+    state.settings = newState.settings;
+    persist();
+    render();
+  }
 }
 
 function render() {
@@ -702,6 +956,8 @@ function render() {
   renderCharts();
   renderRoadmap();
   renderLibrary(elements.exerciseSearch.value);
+  renderSkills();
+  renderSettings();
 }
 
 function addSetFromForm(event) {
@@ -759,6 +1015,7 @@ function wireEvents() {
       id: crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`,
       title: `${lastWorkout.title} Remix`,
       startedAt: new Date().toISOString(),
+      unit: state.settings.unit,
       exercises: lastWorkout.exercises.map((exercise) => ({ name: exercise.name, sets: [] })),
       notes: '',
     };
@@ -784,6 +1041,13 @@ function wireEvents() {
   elements.exerciseSearch.addEventListener('input', (event) => {
     renderLibrary(event.target.value);
   });
+
+  if (elements.settingsForm) {
+    elements.settingsForm.addEventListener('submit', saveSettings);
+  }
+  if (elements.resetStorageBtn) {
+    elements.resetStorageBtn.addEventListener('click', resetStorage);
+  }
 }
 
 wireEvents();

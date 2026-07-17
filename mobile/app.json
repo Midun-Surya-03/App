@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "LiftOff",
+    "slug": "liftoff",
     "version": "1.0.0",
-    "scheme": "fitlog",
+    "scheme": "liftoff",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,10 +12,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.legionmira.fitlog"
+      "bundleIdentifier": "com.legionmira.liftoff"
     },
     "android": {
-      "package": "com.legionmira.fitlog",
+      "package": "com.legionmira.liftoff",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

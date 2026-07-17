@@ -1,0 +1,246 @@
+# Product Requirements Document: FitLog → FitAll
+
+**A workout-tracking app that grows into an all-round fitness companion**
+
+**Status:** Draft v1.0 (merged)
+**Last Updated:** July 16, 2026
+
+---
+
+## 0. Why Merge These Two PRDs
+
+The two source docs represent opposite ends of the same roadmap:
+
+- **FitLog** is narrow and sharp — a fast, low-friction workout logger for everyday gym-goers. Its strength is focus: simple onboarding, quick logging, clear progress.
+- **FitAll** is broad and ambitious — strength, cardio, nutrition, recovery, and social in one app. Its strength is vision: one app instead of four, with real monetization and scale built in.
+
+FitAll's own risk log calls out the danger of combining them poorly: *"Feature bloat could hurt onboarding simplicity."* So this merged PRD treats that not as a risk to manage but as the central design constraint: **launch with FitLog's focus, architect for FitAll's breadth, and unlock scope in phases as retention data justifies it.**
+
+---
+
+## 1. Overview
+
+### 1.1 Problem Statement
+Everyday gym-goers don't consistently track their workouts — the tools available are either too complex (built for competitive lifters) or too simple (a notes app), so people lose motivation and quit. At the same time, once someone builds a tracking habit, their needs broaden: they start caring about nutrition, recovery, and cardio too, and today that means juggling three or four disconnected apps.
+
+### 1.2 Vision
+Start as the fastest, simplest workout logger for everyday gym-goers. Earn the daily habit first. Then grow — without ever compromising that first experience — into a single adaptive fitness companion covering strength, cardio, nutrition, and recovery.
+
+### 1.3 Product Goals
+- Make logging a workout take under 60 seconds per exercise
+- Reach 60% activation (first logged workout within 24 hrs of signup)
+- Hit 35%+ four-week retention before expanding scope beyond strength training
+- Architect data models and infra from day one so nutrition, cardio, and recovery modules can be added without a rebuild
+- Long-term: become a single app users don't need to supplement with Strava/MyFitnessPal/Whoop
+
+### 1.4 Explicit Non-Goals for v1 (Launch Scope)
+Kept deliberately narrow, per FitLog's original scope and FitAll's own bloat warning:
+- Nutrition tracking / barcode scanning
+- Social feed, friends, leaderboards, challenges
+- GPS cardio tracking
+- Wearable integrations
+- AI-generated adaptive programs
+- Gym membership/class booking
+
+These are not rejected — they're **Phase 2+**, detailed in Section 7.
+
+---
+
+## 2. Target Users
+
+### 2.1 Primary Persona (v1 focus)
+**"Casual Chris"** — everyday gym-goer
+- Goes to the gym 2–4x/week, no formal program
+- Currently tracks via Notes app, memory, or not at all
+- Wants to see progress and stay consistent, not chase elite performance
+- Logs in-gym on phone; reviews progress later on laptop
+
+### 2.2 Future Personas (unlocked in later phases)
+| Persona | Description | Core Need | Phase |
+|---|---|---|---|
+| The Beginner | New to fitness, intimidated by gyms | Guided onboarding, starter programs | Phase 1 |
+| The Optimizer | Experienced lifter tracking PRs | Deep analytics, customization | Phase 1–2 |
+| The Time-Crunched Parent | 20–30 min/day, home workouts | Efficiency, flexible programming | Phase 2 |
+| The Hybrid Athlete | Mixes strength, running, mobility | Unified cross-discipline programming | Phase 3 |
+
+### 2.3 Core User Needs (v1)
+1. Log sets/reps/weight quickly while resting between sets
+2. See what they lifted last time for a given exercise
+3. See simple progress trends (are they getting stronger?)
+4. Stay motivated through streaks, PRs, visible progress
+5. Not feel overwhelmed by features they don't need yet
+
+---
+
+## 3. Scope by Phase
+
+This is the key structural change from the two source docs: FitAll's full feature set becomes a **roadmap**, not a v1 spec.
+
+| Phase | Focus | Key Features |
+|---|---|---|
+| **Phase 1 (v1 Launch)** | Nail workout tracking | Logging, history/PRs, templates, progress dashboard, offline mobile, web review |
+| **Phase 2** | Expand the daily habit | Nutrition logging (barcode scan), recovery/sleep sync, wearable connections, adaptive programming |
+| **Phase 3** | Broaden the discipline | GPS cardio/run tracking, mobility/meditation library, unified cross-discipline dashboard |
+| **Phase 4** | Retention & growth loops | Social (friends, opt-in leaderboards, challenges), badges/achievements, referral loops |
+
+Phase gates are retention-based, not calendar-based: **do not begin Phase 2 build until Phase 1 hits 35%+ four-week retention.** This directly addresses FitAll's own identified risk.
+
+---
+
+## 4. Phase 1 Features (Launch Scope, Detailed)
+
+### 4.1 Onboarding
+- Goal selection (build muscle, get stronger, general consistency)
+- Experience level self-assessment
+- Optional starter template selection (e.g., "Push/Pull/Legs," "Full Body 3x/week")
+- Guest mode to try the app before account creation (local-only, prompts to save)
+
+**Acceptance criteria:** User reaches home dashboard in ≤5 steps and ≤3 minutes.
+
+### 4.2 Workout Logging
+- Start a workout in ≤2 taps ("Start Empty Workout" or "Repeat Last Workout")
+- Add exercises from a searchable library (200+ exercises, categorized by muscle group/equipment)
+- Log sets: weight, reps, optional RPE and notes
+- Auto-fills previous weight/reps as a starting suggestion
+- Built-in rest timer, offline-capable
+- Mark complete; auto-saves duration
+
+**Acceptance criteria:** Logging screen responds in ≤1s; full offline support with sync on reconnect.
+
+### 4.3 Exercise History & PRs
+- Per-exercise history (date, sets, weight, reps)
+- PR detection and highlighting ("New PR! 🎉")
+- Simple graph: weight/volume over time per exercise
+
+### 4.4 Workout Templates
+- Save any completed workout as a reusable template
+- Pre-built starter templates for new users
+- Reorder/edit exercises within a template
+
+### 4.5 Progress Dashboard
+- Weekly/monthly workout count and streak tracker
+- Total volume lifted over time
+- Optional manual body-weight log
+- Calendar view of workout days
+
+### 4.6 Platform & Sync
+- **Mobile (iOS/Android):** primary in-gym use, offline-first, optimized for one-handed/sweaty-hands use, <2s cold start
+- **Web:** full feature parity for history, templates, and library browsing; not optimized for live logging but functional
+- Real-time account-based cloud sync between mobile and web
+
+---
+
+## 5. Non-Functional Requirements
+*(Adopted from FitAll, scoped down for Phase 1 launch, expanding at scale)*
+
+- **Performance:** cold start ≤2s; logging screen response ≤1s
+- **Offline support:** core logging must work offline and sync on reconnect
+- **Cross-platform:** iOS and Android at parity for launch; web at feature parity for non-logging features
+- **Accessibility:** WCAG 2.1 AA compliance, VoiceOver/TalkBack support
+- **Privacy/Security:** health data encrypted at rest and in transit; GDPR/CCPA compliant from day one (design for HIPAA-adjacent handling ahead of Phase 2 nutrition/recovery data, which is more sensitive)
+- **Scalability:** architecture should support scaling to 500K+ users without a data-model rewrite, even though Phase 1 targets a smaller launch cohort
+
+---
+
+## 6. Success Metrics
+
+### 6.1 Phase 1 Launch Metrics (6 months post-launch)
+| Metric | Target |
+|---|---|
+| Activation: first logged workout within 24 hrs | ≥ 60% |
+| Weekly active users logging ≥1 workout | ≥ 40% of installs |
+| Avg. time to log a full workout | < 5 minutes |
+| 4-week retention | ≥ 35% |
+| Workouts logged per active user/week | ≥ 2.5 |
+| App Store / Play Store rating | ≥ 4.5 |
+
+### 6.2 Longer-Term Business Metrics (post Phase 2–3)
+| Metric | Target |
+|---|---|
+| Monthly Active Users | 500K within 12 months of full-scope launch |
+| Day-30 retention | 40% (vs. ~25% industry avg) |
+| Free-to-paid conversion (90 days) | 8% |
+
+Phase 1 intentionally omits monetization/MAU-scale targets — those only become meaningful once the core habit loop is proven.
+
+---
+
+## 7. Future Phases (Detailed)
+
+### Phase 2: Nutrition, Recovery, Wearables
+- Food logging: search, barcode scan, AI photo-assisted estimate (target: <2s match for 90% of common packaged foods)
+- Macro/calorie targets tied to goal
+- Sleep tracking via wearable sync or manual entry
+- Readiness score (sleep + HRV if available + recent training load)
+- Wearable connections: Apple Watch, Garmin, Whoop, Fitbit
+- Adaptive programming: adjusts difficulty based on logged performance and missed sessions
+
+### Phase 3: Cardio & Broader Discipline
+- GPS-based run/ride/walk tracking (pace, distance, elevation, splits)
+- Interval and race-training plans
+- Guided mobility/stretching routines
+- Short meditation/breathing library
+- Unified analytics dashboard spanning strength + cardio + recovery
+
+### Phase 4: Social & Growth Loops
+- Friend connections, activity feed
+- Opt-in group challenges (step count, workout streaks)
+- Privacy-respecting, opt-in leaderboards
+- Badges/achievements
+- Smart reminders based on user's typical workout time; streak-protection nudges
+
+---
+
+## 8. Monetization
+
+Introduced starting Phase 2 — Phase 1 stays free to maximize activation and retention data quality while the core habit is being validated.
+
+| Tier | Price | Includes |
+|---|---|---|
+| Free | $0 | Full Phase 1 logging feature set, limited template library |
+| Premium | $9.99/mo or $79.99/yr | Full program/template library, nutrition tracking, adaptive plans, no ads |
+| Premium+ | $14.99/mo | Advanced analytics, wearable integrations, family sharing (up to 5) |
+
+---
+
+## 9. Proposed Milestones
+
+| Phase | Timeline | Deliverable |
+|---|---|---|
+| Discovery & Design | Weeks 1–4 | User research, wireframes, tech architecture (designed for Phase 2+ extensibility) |
+| Phase 1 MVP Build | Weeks 5–14 | Onboarding, logging, history/PRs, templates, dashboard, offline mobile |
+| Phase 1 Beta | Weeks 15–18 | Closed beta (2K users) |
+| Phase 1 Launch | Week 20 | Public launch, iOS + Android + web |
+| Retention Gate Review | Week 20 + 4 weeks | Go/no-go on Phase 2 based on 4-week retention data |
+| Phase 2 Build | Post-gate, ~10 weeks | Nutrition, recovery, wearables, adaptive programming |
+| Phase 3–4 | Ongoing | Cardio, social, growth loops — sequenced based on engagement data |
+
+---
+
+## 10. Risks & Open Questions
+
+### Risks
+- **Feature bloat undermining onboarding simplicity** — mitigated structurally by the phase-gate model above (not just "progressive disclosure UX")
+- **Scope creep pressure** post-launch to accelerate Phase 2 before retention data justifies it — needs explicit stakeholder buy-in on the retention gate now
+- Wearable API dependencies (rate limits, deprecations) could break sync reliability once Phase 2 begins
+- Food-photo AI accuracy may frustrate users if too low — needs fallback to manual entry
+- Architecting Phase 1 data models to support Phase 2–4 without a rebuild adds upfront engineering cost — needs early buy-in from eng leadership
+
+### Open Questions
+- Do we support bodyweight/cardio exercises differently from strength (reps/weight vs. time/distance) even in Phase 1, to ease the Phase 3 transition?
+- What's the exercise library source — licensed database or built in-house? (Also relevant to Phase 3 video demo content — do we build or license?)
+- Should Phase 1 remain fully free, or introduce a lightweight premium tier (e.g., unlimited templates) ahead of Phase 2 to start monetization learning earlier?
+- What's the wearable integration priority order for Phase 2 — Apple Watch vs. Garmin vs. Whoop?
+- Should social features (Phase 4) be opt-in by default or on from day one?
+
+---
+
+## 11. Appendix
+
+### 11.1 Competitive Landscape
+Strava (cardio-first), Strong/Hevy (strength-first), MyFitnessPal (nutrition-first), and Whoop (recovery-first) each own one slice of the fitness journey. This product's differentiation is sequencing: win strength-tracking first with the focus of a Strong/Hevy competitor, then expand into the others' territory only once the core habit is proven — arriving at FitAll's original breadth-plus-personalization vision without the onboarding cost of trying to be everything at launch.
+
+### 11.2 Assumptions
+- Users primarily lift weights (strength training) rather than pure cardio, based on the "gym-goer" persona
+- Users already have gym access; the app doesn't handle membership or facility access
+- Single-user accounts for Phase 1 (family sharing arrives with Premium+ in Phase 2)
